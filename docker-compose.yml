@@ -1,0 +1,17 @@
+version: "2.4"
+services:
+    # graphql-service:
+    #     image: graphql-service-app:latest
+    #     container_name: graphql-service-app
+    #     network_mode: "host"
+    #     restart: always
+    #     ports:
+    #       - 127.0.0.1:8080:8080
+    postgres:
+        image: postgres:10.7
+        container_name: graphql-service-postgres-db
+        environment:
+          - POSTGRES_USER=postgres
+          - POSTGRES_PASSWORD=admin
+        ports:
+          - 5432:5432

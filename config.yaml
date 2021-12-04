@@ -1,0 +1,18 @@
+database:
+    name: "graphqlservice"
+    host: "localhost"
+    port: "5432"
+    user: "postgres"
+    password: "admin"
+
+token:
+    secret_key: "my_key"
+    expiration_timer: 5
+
+server:
+    port: "8080"
+
+sms:
+    expiration_timer: 5
+
+## all timers in minutes
