@@ -247,8 +247,6 @@ func (operator *OperatorData) checkToken(token string) (*Claims, error) {
 func (operator *OperatorData) registerUser(user database.User, code string) error {
 	err := operator.database.RegisterNewUser(
 		user,
-		code,
-		time.Duration(operator.config.SMS.ExpirationTimer),
 	)
 
 	if err != nil {

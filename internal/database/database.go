@@ -14,7 +14,7 @@ type Repository interface {
 	Close() error
 	GetAllProducts() ([]Product, error)
 	InsertSMSCode(phoneNumber, code string, expirationTimer time.Duration) error
-	RegisterNewUser(user User, code string, expirationTimer time.Duration) error
+	RegisterNewUser(user User) error
 	GetUserByPhoneNumber(string) (*User, error)
 	GetSMSCode(phoneNumber string) (*SMSCode, error)
 }
@@ -155,89 +155,39 @@ func (database *Database) InsertSMSCode(
 	return nil
 }
 
-func (database *Database) RegisterNewUser(
-	user User,
-	code string,
-	expirationTimer time.Duration,
-) error {
+func (database *Database) RegisterNewUser(user User) error {
 	log.Info("register new user")
-	timeNow, err := tools.GetCurrentMoscowTime()
+	_, err := database.client.Model(&user).Insert()
 	if err != nil {
-		return karma.Format(
-			err,
-			"unable to get current moscow time",
-		)
-	}
-
-	tx, err := database.client.Begin()
-	if err != nil {
-		return karma.Format(
-			err,
-			"unable to begin transaction",
-		)
-	}
-
-	_, err = tx.Model(&user).Insert()
-	if err != nil {
-		_ = tx.Rollback()
 		return karma.Format(
 			err,
 			"unable to insert user to database",
 		)
 	}
 
-	exipiredAt := timeNow.Add(expirationTimer * time.Minute)
-	smsCode := &SMSCode{
-		Phone:     user.Phone,
-		Code:      code,
-		ExpiredAt: exipiredAt,
-	}
-
-	_, err = tx.Model(smsCode).
-		OnConflict("(phone) DO UPDATE").
-		Set("code = ?", code).
-		Set("expired_at = ?", exipiredAt).
-		Insert()
-
-	if err != nil {
-		_ = tx.Rollback()
-		return karma.Format(
-			err,
-			"unable to insert sms code to database",
-		)
-	}
-
-	err = tx.Commit()
-	if err != nil {
-		return karma.Format(
-			err,
-			"unable to commit transaction",
-		)
-	}
-
-	log.Info("user is registered successfully")
+	log.Info("user successfully inserted to database")
 	return nil
 }
 
 func (database *Database) GetUserByPhoneNumber(phoneNumber string) (*User, error) {
 	log.Info("receiving user by phone number from database")
-	var users []User
-	err := database.client.Model(&users).Where("phone = ?", phoneNumber).Select()
+	var user User
+	err := database.client.Model(&user).Where("phone = ?", phoneNumber).Select()
 	if err != nil {
+		if err == pg.ErrNoRows {
+			return nil, nil
+		}
+
 		return nil, karma.Format(
 			err,
 			"error during receiving user by phone number",
 		)
 	}
 
-	// user.phone is unique field in database, is select result successfully, it should contain only one user
-	if len(users) != 0 {
-		log.Info("user successfully received")
-		return &users[0], nil
-	}
+	log.Info("user successfully received from database")
 
-	log.Info("user not found")
-	return nil, nil
+	return &user, nil
+
 }
 
 func (database *Database) GetSMSCode(phoneNumber string) (*SMSCode, error) {
