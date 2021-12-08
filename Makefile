@@ -30,6 +30,9 @@ db-drop:
 db-run-migrations:
 	dbmate up
 
+db-down-migrations:
+	dbmate down
+
 db-add-testdata:
 	cat test_data.sql | psql postgres://postgres:admin@127.0.0.1:5432/graphqlservice
 
